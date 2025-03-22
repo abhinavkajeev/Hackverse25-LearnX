@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import CourseVideoPlayer from './CourseVideoPlayer';
 import CourseSidebar from './CourseSidebar';
+import ChatbotButton from './ChatbotButton'; // Import the new component
 
 function CourseDetails() {
   const { id } = useParams();
@@ -165,7 +166,7 @@ function CourseDetails() {
   }
 
   return (
-    <div className="container mx-auto px-6 py-6">
+    <div className="container mx-auto px-6 py-6 relative">
       <div className="flex flex-col lg:flex-row gap-8">
         {/* Left side - Video Player */}
         <div className="lg:w-2/3">
@@ -203,6 +204,13 @@ function CourseDetails() {
           />
         </div>
       </div>
+      
+      {/* Chatbot Button Component */}
+      <ChatbotButton 
+        isPurchased={isPurchased} 
+        courseId={id}
+        courseTitle={course.title}
+      />
     </div>
   );
 }
