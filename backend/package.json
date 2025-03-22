@@ -19,7 +19,13 @@
         "nodemon": "^3.0.0"
     },
     "description": "AI-based backend for Web3 application",
-    "keywords": ["ai", "backend", "web3", "express", "mongodb"],
+    "keywords": [
+        "ai",
+        "backend",
+        "web3",
+        "express",
+        "mongodb"
+    ],
     "author": "",
     "license": "ISC",
     "type": "module"

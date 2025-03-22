@@ -22,10 +22,10 @@ function Navbar() {
         const address = await signer.getAddress();
         
         // Check if address exists in MongoDB
-        const response = await fetch(`/api/users/check-wallet?address=${address}`);
-        const data = await response.json();
+        const response = await fetch(`/api/users/check?address=${address}`);
         
-        if (data.exists) {
+        
+        if (response.exists) {
           // Address exists, directly connect
           setWalletAddress(address);
         } else {

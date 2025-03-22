@@ -1,181 +1,193 @@
-import { useState, useEffect } from "react";
+// components/AuthOverlay.jsx
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X, User, Mail, GraduationCap, Briefcase } from 'lucide-react';
+import axios from 'axios';
+import { ethers } from 'ethers';
 
-function AuthOverlay({ isOpen, onClose, isLogin, setIsLogin, walletAddress, setWalletAddress }) {
-  const [localWalletAddress, setLocalWalletAddress] = useState(walletAddress || "");
-  const [role, setRole] = useState(""); // No default role, user must select
-  const [isVisible, setIsVisible] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+const AuthOverlay = ({ isOpen, onClose }) => {
+  const [walletAddress, setWalletAddress] = useState('');
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [isMentor, setIsMentor] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState('');
+  const [error, setError] = useState('');
 
-  // Update local wallet address when prop changes
-  useEffect(() => {
-    setLocalWalletAddress(walletAddress || "");
-  }, [walletAddress]);
-
-  // Handle overlay visibility with animation
-  useEffect(() => {
-    if (isOpen) {
-      setIsVisible(true);
-    } else {
-      setIsVisible(false);
+  const connectWallet = async () => {
+    try {
+      if (!window.ethereum) throw new Error('Install MetaMask');
+      
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const accounts = await provider.send("eth_requestAccounts", []);
+      const address = accounts[0];
+      setWalletAddress(address);
+      checkUserExists(address);
+    } catch (err) {
+      setError(err.message);
     }
-  }, [isOpen]);
+  };
+
+  const checkUserExists = async (address) => {
+    try {
+      setLoading(true);
+      const response = await axios.get('http://localhost:5000/api/users/check', {
+        params: { walletAddress: address }
+      });
+      
+      if (!response.data.exists) {
+        setStatus('new-user');
+      } else {
+        setStatus('existing-user');
+        setTimeout(onClose, 1500);
+      }
+    } catch (err) {
+      setError('Error checking user existence');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!localWalletAddress) {
-      alert("Please enter a wallet address");
-      return;
-    }
-    
-    if (!isLogin && !role) {
-      alert("Please select a role");
-      return;
-    }
-    
-    setIsSubmitting(true);
-    
     try {
-      if (isLogin) {
-        // Login existing user
-        const response = await fetch('/api/users/login', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ walletAddress: localWalletAddress }),
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok) {
-          // Login successful
-          setWalletAddress(localWalletAddress);
-          onClose();
-        } else {
-          // Login failed
-          alert(data.message || "Login failed. Please check your wallet address.");
-        }
-      } else {
-        // Register new user
-        const response = await fetch('/api/users/register', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ 
-            walletAddress: localWalletAddress,
-            role: role
-          }),
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok) {
-          // Registration successful
-          setWalletAddress(localWalletAddress);
-          onClose();
-        } else {
-          // Registration failed
-          alert(data.message || "Registration failed. Please try again.");
-        }
-      }
-    } catch (error) {
-      console.error("Authentication error:", error);
-      alert("An error occurred during authentication. Please try again.");
+      setLoading(true);
+      await axios.post('http://localhost:5000/api/users', {
+        walletAddress,
+        name,
+        email,
+        role: isMentor ? 'mentor' : 'student'
+      });
+      setStatus('success');
+      setTimeout(onClose, 2000);
+    } catch (err) {
+      setError('Registration failed. Please try again.');
     } finally {
-      setIsSubmitting(false);
+      setLoading(false);
     }
   };
 
   return (
-    <div
-      className={`fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 transition-opacity duration-300 ${
-        isVisible ? "opacity-100" : "opacity-0 pointer-events-none"
-      }`}
-    >
-      <div
-        className={`bg-white p-8 rounded-lg shadow-2xl w-96 relative transform transition-transform duration-300 ${
-          isVisible ? "scale-100" : "scale-95"
-        }`}
-      >
-        <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">
-          {isLogin ? "Login" : "Sign Up"}
-        </h2>
-
-        {/* Show Role Selection Only for Signup */}
-        {!isLogin && (
-          <div className="mb-6">
-            <p className="text-lg font-medium mb-3 text-gray-700">Are you a:</p>
-            <div className="flex justify-between gap-4">
-              <button
-                className={`flex-1 px-4 py-3 rounded-lg border-2 text-lg font-semibold transition-all ${
-                  role === "Learner"
-                    ? "bg-blue-500 text-white border-blue-500"
-                    : "bg-gray-100 text-gray-700 border-gray-200 hover:bg-blue-50"
-                }`}
-                onClick={() => setRole("Learner")}
-                type="button"
-              >
-                Learner
-              </button>
-              <button
-                className={`flex-1 px-4 py-3 rounded-lg border-2 text-lg font-semibold transition-all ${
-                  role === "Mentor"
-                    ? "bg-blue-500 text-white border-blue-500"
-                    : "bg-gray-100 text-gray-700 border-gray-200 hover:bg-blue-50"
-                }`}
-                onClick={() => setRole("Mentor")}
-                type="button"
-              >
-                Mentor
-              </button>
-            </div>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit}>
-          {/* Wallet Address Input */}
-          <input
-            type="text"
-            placeholder="Enter your Wallet Address"
-            value={localWalletAddress}
-            onChange={(e) => setLocalWalletAddress(e.target.value)}
-            className="w-full p-3 border-2 border-gray-200 rounded-lg mb-4 focus:outline-none focus:border-blue-500 transition-all"
-            required
-          />
-
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full bg-blue-500 text-white p-3 rounded-lg font-semibold text-lg hover:bg-blue-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+        >
+          <motion.div
+            initial={{ scale: 0.95 }}
+            animate={{ scale: 1 }}
+            className="bg-white rounded-xl p-6 w-full max-w-md relative shadow-xl"
           >
-            {isSubmitting 
-              ? "Processing..." 
-              : isLogin 
-                ? "Login" 
-                : "Sign Up"}
-          </button>
-        </form>
+            <button
+              onClick={onClose}
+              className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+            >
+              <X size={24} />
+            </button>
 
-        {/* Toggle Between Login & Signup */}
-        <p
-          onClick={() => setIsLogin(!isLogin)}
-          className="text-blue-500 text-sm mt-4 cursor-pointer text-center hover:text-blue-600 transition-all"
-        >
-          {isLogin ? "Don't have an account? Sign Up" : "Already have an account? Login"}
-        </p>
+            {!walletAddress ? (
+              <div className="text-center space-y-4">
+                <h2 className="text-2xl font-bold">Connect Wallet</h2>
+                <p className="text-gray-600">
+                  Connect your wallet to continue to LearnX
+                </p>
+                <button
+                  onClick={connectWallet}
+                  disabled={loading}
+                  className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium
+                    hover:bg-blue-700 transition-colors w-full disabled:opacity-50"
+                >
+                  {loading ? 'Connecting...' : 'Connect with MetaMask'}
+                </button>
+                {error && <p className="text-red-500 text-sm">{error}</p>}
+              </div>
+            ) : status === 'new-user' ? (
+              <motion.form
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                onSubmit={handleSubmit}
+                className="space-y-4"
+              >
+                <h2 className="text-2xl font-bold text-center">
+                  Complete Registration
+                </h2>
 
-        {/* Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 transition-all"
-        >
-          ✕
-        </button>
-      </div>
-    </div>
+                <div className="flex gap-2 justify-center">
+                  <button
+                    type="button"
+                    onClick={() => setIsMentor(false)}
+                    className={`px-4 py-2 rounded-full flex items-center gap-2
+                      ${!isMentor ? 'bg-blue-600 text-white' : 'bg-gray-100'}`}
+                  >
+                    <GraduationCap size={18} />
+                    Student
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsMentor(true)}
+                    className={`px-4 py-2 rounded-full flex items-center gap-2
+                      ${isMentor ? 'bg-blue-600 text-white' : 'bg-gray-100'}`}
+                  >
+                    <Briefcase size={18} />
+                    Mentor
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder="Name (optional)"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2 border rounded-lg
+                        focus:ring-2 focus:ring-blue-500 outline-none"
+                    />
+                  </div>
+
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input
+                      type="email"
+                      placeholder="Email (optional)"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2 border rounded-lg
+                        focus:ring-2 focus:ring-blue-500 outline-none"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-blue-600 text-white py-2 rounded-lg
+                    font-medium hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {loading ? 'Saving...' : 'Complete Registration'}
+                </button>
+
+                {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+              </motion.form>
+            ) : (
+              <div className="text-center space-y-4">
+                <h3 className="text-xl font-semibold">
+                  {status === 'success' ? 'Registration Successful!' : 'Welcome Back!'}
+                </h3>
+                <p className="text-gray-600 break-words text-sm">
+                  Wallet: {walletAddress}
+                </p>
+              </div>
+            )}
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
-}
+};
 
 export default AuthOverlay;
