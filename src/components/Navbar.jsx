@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { BrowserProvider } from "ethers"; // ✅ Correct import for Ethers v6
-import { ShoppingCart, Menu } from "lucide-react";
-import AuthOverlay from "./AuthOverlay";
 import { Link } from "react-router-dom";
+import { Menu, ShoppingCart } from "lucide-react";
+import { BrowserProvider } from "ethers";
+import AuthOverlay from "./AuthOverlay";
 
 function Navbar() {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
@@ -11,7 +11,7 @@ function Navbar() {
   const [isConnecting, setIsConnecting] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Connect MetaMask Wallet (Fixed)
+  // Connect MetaMask Wallet with MongoDB check
   const connectWallet = async () => {
     if (window.ethereum) {
       try {
@@ -20,7 +20,20 @@ function Navbar() {
         await window.ethereum.request({ method: "eth_requestAccounts" });
         const signer = await provider.getSigner();
         const address = await signer.getAddress();
-        setWalletAddress(address);
+        
+        // Check if address exists in MongoDB
+        const response = await fetch(`/api/users/check-wallet?address=${address}`);
+        const data = await response.json();
+        
+        if (data.exists) {
+          // Address exists, directly connect
+          setWalletAddress(address);
+        } else {
+          // Address doesn't exist, show auth overlay for registration
+          setWalletAddress(""); // Keep as not connected yet
+          setIsLogin(false); // Set to registration mode
+          setIsAuthOpen(true); // Open auth overlay
+        }
       } catch (error) {
         console.error("Wallet connection failed", error);
       } finally {
@@ -66,7 +79,7 @@ function Navbar() {
             <ShoppingCart size={20} className="group-hover:size-9 transition-all duration-300 ease-in-out" />
           </button>
 
-          {/* ✅ Fixed Wallet Connect Button */}
+          {/* Wallet Connect Button */}
           <button
             onClick={connectWallet}
             disabled={isConnecting}
@@ -87,31 +100,6 @@ function Navbar() {
             >
               My Courses
             </Link>
-          )}
-
-          {/* ✅ Hide Login & Sign-Up when MetaMask is connected */}
-          {!walletAddress && (
-            <>
-              <button
-                className="border-4 border-black shadow-[4px_4px_0px_#000] px-4 py-2 bg-red-400 font-semibold transition-all duration-300 ease-in-out hover:scale-110 active:shadow-none active:translate-x-1 active:translate-y-1"
-                onClick={() => {
-                  setIsAuthOpen(true);
-                  setIsLogin(true);
-                }}
-              >
-                Login
-              </button>
-
-              <button
-                className="border-4 border-black shadow-[4px_4px_0px_#000] px-4 py-2 bg-red-400 font-semibold transition-all duration-300 ease-in-out hover:scale-110 active:shadow-none active:translate-x-1 active:translate-y-1"
-                onClick={() => {
-                  setIsAuthOpen(true);
-                  setIsLogin(false);
-                }}
-              >
-                Sign-Up
-              </button>
-            </>
           )}
         </div>
       </nav>
@@ -145,6 +133,8 @@ function Navbar() {
           onClose={() => setIsAuthOpen(false)}
           isLogin={isLogin}
           setIsLogin={setIsLogin}
+          walletAddress={walletAddress || ""}
+          setWalletAddress={setWalletAddress}
         />
       )}
     </>

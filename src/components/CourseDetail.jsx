@@ -1,5 +1,5 @@
 import React from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 
 const coursename = [
   {
@@ -33,20 +33,39 @@ const coursename = [
 
 function CourseDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const course = coursename.find(course => course.id === id);
 
   if (!course) {
     return <div>Course not found</div>;
   }
 
+  const handleStartLearning = () => {
+    navigate(`/learn/${id}`);
+  };
+
   return (
     <section className="container mx-auto px-6 py-12">
-      <div className="bg-white rounded-3xl p-8">
+      <div className="bg-white rounded-3xl p-8 shadow-lg">
         <img src={course.image} alt={course.title} className="w-full h-64 object-cover rounded-2xl mb-6" />
         <h2 className="text-3xl font-bold mb-4">{course.title}</h2>
         <p className="text-lg mb-4">{course.description}</p>
         <p className="text-sm mb-2">By {course.instructor} • {course.rating}</p>
-        <p className="text-sm">{course.price}</p>
+        <p className="text-sm mb-6">{course.price}</p>
+        
+        {/* Added button to start learning */}
+        <div className="flex justify-between items-center">
+          <button 
+            onClick={handleStartLearning}
+            className="bg-red-400 text-white px-8 py-3 rounded-md font-medium hover:bg-red-500 transition-colors"
+          >
+            Start Learning
+          </button>
+          
+          <p className="text-sm text-gray-600">
+            Access premium course content by enrolling now
+          </p>
+        </div>
       </div>
     </section>
   );

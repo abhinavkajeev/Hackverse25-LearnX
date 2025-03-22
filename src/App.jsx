@@ -4,6 +4,7 @@ import Home from './components/Home';
 import About from './components/About';
 import Courses from './components/Courses';
 import CourseDetail from './components/CourseDetail';
+import CourseDetails from './components/CourseDetails'; // Import the new component
 
 function App() {
   const router = createBrowserRouter([
@@ -26,6 +27,10 @@ function App() {
         {
           path: "courses/:id", // Dynamic route for course details
           element: <CourseDetail />,
+        },
+        {
+          path: "learn/:id", // New route for course video content
+          element: <CourseDetails />,
         },
       ],
     },

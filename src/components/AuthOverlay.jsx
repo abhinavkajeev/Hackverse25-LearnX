@@ -1,9 +1,15 @@
 import { useState, useEffect } from "react";
 
-function AuthOverlay({ isOpen, onClose, isLogin, setIsLogin }) {
-  const [walletAddress, setWalletAddress] = useState("");
+function AuthOverlay({ isOpen, onClose, isLogin, setIsLogin, walletAddress, setWalletAddress }) {
+  const [localWalletAddress, setLocalWalletAddress] = useState(walletAddress || "");
   const [role, setRole] = useState(""); // No default role, user must select
   const [isVisible, setIsVisible] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Update local wallet address when prop changes
+  useEffect(() => {
+    setLocalWalletAddress(walletAddress || "");
+  }, [walletAddress]);
 
   // Handle overlay visibility with animation
   useEffect(() => {
@@ -14,13 +20,72 @@ function AuthOverlay({ isOpen, onClose, isLogin, setIsLogin }) {
     }
   }, [isOpen]);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Wallet Address:", walletAddress);
-    if (!isLogin) {
-      console.log("Role:", role);
+    
+    if (!localWalletAddress) {
+      alert("Please enter a wallet address");
+      return;
     }
-    onClose(); // Close overlay after submission
+    
+    if (!isLogin && !role) {
+      alert("Please select a role");
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
+    try {
+      if (isLogin) {
+        // Login existing user
+        const response = await fetch('/api/users/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ walletAddress: localWalletAddress }),
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          // Login successful
+          setWalletAddress(localWalletAddress);
+          onClose();
+        } else {
+          // Login failed
+          alert(data.message || "Login failed. Please check your wallet address.");
+        }
+      } else {
+        // Register new user
+        const response = await fetch('/api/users/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ 
+            walletAddress: localWalletAddress,
+            role: role
+          }),
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          // Registration successful
+          setWalletAddress(localWalletAddress);
+          onClose();
+        } else {
+          // Registration failed
+          alert(data.message || "Registration failed. Please try again.");
+        }
+      }
+    } catch (error) {
+      console.error("Authentication error:", error);
+      alert("An error occurred during authentication. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -50,6 +115,7 @@ function AuthOverlay({ isOpen, onClose, isLogin, setIsLogin }) {
                     : "bg-gray-100 text-gray-700 border-gray-200 hover:bg-blue-50"
                 }`}
                 onClick={() => setRole("Learner")}
+                type="button"
               >
                 Learner
               </button>
@@ -60,6 +126,7 @@ function AuthOverlay({ isOpen, onClose, isLogin, setIsLogin }) {
                     : "bg-gray-100 text-gray-700 border-gray-200 hover:bg-blue-50"
                 }`}
                 onClick={() => setRole("Mentor")}
+                type="button"
               >
                 Mentor
               </button>
@@ -72,17 +139,22 @@ function AuthOverlay({ isOpen, onClose, isLogin, setIsLogin }) {
           <input
             type="text"
             placeholder="Enter your Wallet Address"
-            value={walletAddress}
-            onChange={(e) => setWalletAddress(e.target.value)}
+            value={localWalletAddress}
+            onChange={(e) => setLocalWalletAddress(e.target.value)}
             className="w-full p-3 border-2 border-gray-200 rounded-lg mb-4 focus:outline-none focus:border-blue-500 transition-all"
             required
           />
 
           <button
             type="submit"
-            className="w-full bg-blue-500 text-white p-3 rounded-lg font-semibold text-lg hover:bg-blue-600 transition-all"
+            disabled={isSubmitting}
+            className="w-full bg-blue-500 text-white p-3 rounded-lg font-semibold text-lg hover:bg-blue-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isLogin ? "Login" : "Sign Up"}
+            {isSubmitting 
+              ? "Processing..." 
+              : isLogin 
+                ? "Login" 
+                : "Sign Up"}
           </button>
         </form>
 
