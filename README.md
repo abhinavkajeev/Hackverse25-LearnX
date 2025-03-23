@@ -13,20 +13,20 @@ AI doubt assistant integrated inside each course (Gemini AI)
 Seamless front-end built with ReactJS
 
 🌟 Vision of LearnX
-Our vision is to democratize education by:
+     Our vision is to democratize education by:
 
-Giving mentors full control and ownership of their content
+          (i) Giving mentors full control and ownership of their content
 
-Rewarding students for active participation and learning
+          (ii) Rewarding students for active participation and learning
 
-Removing intermediaries from the learning ecosystem
+          (iii) Removing intermediaries from the learning ecosystem
 
-Integrating cutting-edge AI tools to personalize and assist the learning process
+          (iv) Integrating cutting-edge AI tools to personalize and assist the learning process
 
-Creating a transparent, decentralized, and incentivized education model accessible to all
+          (v) Creating a transparent, decentralized, and incentivized education model accessible to all
 
 📸 Screenshots
-(https://github.com/user-attachments/assets/4a96cfc2-5f84-4351-89db-143bda1518a1)
+
 
 
 
