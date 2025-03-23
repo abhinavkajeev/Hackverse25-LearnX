@@ -1,52 +1,60 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Menu, ShoppingCart } from "lucide-react";
 import { BrowserProvider } from "ethers";
 import AuthOverlay from "./AuthOverlay";
 
 function Navbar() {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
-  const [isLogin, setIsLogin] = useState(true);
   const [walletAddress, setWalletAddress] = useState("");
   const [isConnecting, setIsConnecting] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const navigate = useNavigate();
 
-  // Connect MetaMask Wallet with MongoDB check
+  // Connect MetaMask Wallet
   const connectWallet = async () => {
-    if (window.ethereum) {
-      try {
-        setIsConnecting(true);
-        const provider = new BrowserProvider(window.ethereum);
-        await window.ethereum.request({ method: "eth_requestAccounts" });
-        const signer = await provider.getSigner();
-        const address = await signer.getAddress();
-        
-        // Check if address exists in MongoDB
-        const response = await fetch(`/api/users/check?address=${address}`);
-        
-        
-        if (response.exists) {
-          // Address exists, directly connect
-          setWalletAddress(address);
-        } else {
-          // Address doesn't exist, show auth overlay for registration
-          setWalletAddress(""); // Keep as not connected yet
-          setIsLogin(false); // Set to registration mode
-          setIsAuthOpen(true); // Open auth overlay
-        }
-      } catch (error) {
-        console.error("Wallet connection failed", error);
-      } finally {
-        setIsConnecting(false);
+    if (!window.ethereum) {
+      alert("Please install MetaMask!");
+      return;
+    }
+
+    try {
+      setIsConnecting(true);
+      const provider = new BrowserProvider(window.ethereum);
+      const accounts = await provider.send("eth_requestAccounts", []);
+      const address = accounts[0];
+
+      // Check user existence in MongoDB
+      const response = await fetch(
+        `http://localhost:5000/api/users/check?walletAddress=${address}`
+      );
+      
+      if (!response.ok) throw new Error("User check failed");
+      
+      const data = await response.json();
+
+      if (data.exists) {
+        setWalletAddress(address);
+        navigate("/courses");
+      } else {
+        setWalletAddress(address);
+        setIsAuthOpen(true);
       }
-    } else {
-      alert("MetaMask not detected. Please install it.");
+    } catch (error) {
+      console.error("Connection error:", error);
+      alert(error.message);
+    } finally {
+      setIsConnecting(false);
     }
   };
 
-  // Toggle Mobile Menu
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
+  const handleRegistrationSuccess = () => {
+    setIsAuthOpen(false);
+    navigate("/courses");
   };
 
   return (
@@ -65,7 +73,7 @@ function Navbar() {
           {["Home", "About", "Courses"].map((item) => (
             <Link
               key={item}
-              to={(item==="Home") ? "/" : `/${item.toLowerCase()}`}
+              to={item === "Home" ? "/" : `/${item.toLowerCase()}`}
               className="font-medium relative inline-block text-black hover:text-yellow-500 transition-all duration-300 ease-in-out hover:scale-110 text-lg"
             >
               {item}
@@ -79,7 +87,6 @@ function Navbar() {
             <ShoppingCart size={20} className="group-hover:size-9 transition-all duration-300 ease-in-out" />
           </button>
 
-          {/* Wallet Connect Button */}
           <button
             onClick={connectWallet}
             disabled={isConnecting}
@@ -92,7 +99,6 @@ function Navbar() {
               : "Connect Wallet"}
           </button>
 
-          {/* Add "My Courses" button when wallet is connected */}
           {walletAddress && (
             <Link
               to="/courses"
@@ -104,18 +110,19 @@ function Navbar() {
         </div>
       </nav>
 
+      {/* Mobile Menu */}
       {isMobileMenuOpen && (
         <div className="md:hidden bg-white shadow-lg p-4">
           {["Home", "About", "Courses"].map((item) => (
             <Link
               key={item}
-              to={(item==="Home") ? "/" : `/${item.toLowerCase()}`}
+              to={item === "Home" ? "/" : `/${item.toLowerCase()}`}
               className="block font-medium text-black hover:text-yellow-500 py-2 transition-all duration-300"
             >
               {item}
             </Link>
           ))}
-          {/* Also add My Courses to mobile menu when wallet is connected */}
+          
           {walletAddress && (
             <Link
               to="/courses"
@@ -124,19 +131,28 @@ function Navbar() {
               My Courses
             </Link>
           )}
+          
+          <button
+            onClick={connectWallet}
+            disabled={isConnecting}
+            className="block w-full text-left font-medium text-black hover:text-yellow-500 py-2 transition-all duration-300 disabled:opacity-50"
+          >
+            {isConnecting
+              ? "Connecting..."
+              : walletAddress
+              ? `Wallet: ${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`
+              : "Connect Wallet"}
+          </button>
         </div>
       )}
 
-      {isAuthOpen && (
-        <AuthOverlay
-          isOpen={isAuthOpen}
-          onClose={() => setIsAuthOpen(false)}
-          isLogin={isLogin}
-          setIsLogin={setIsLogin}
-          walletAddress={walletAddress || ""}
-          setWalletAddress={setWalletAddress}
-        />
-      )}
+      {/* Registration Overlay */}
+      <AuthOverlay
+        isOpen={isAuthOpen}
+        onClose={() => setIsAuthOpen(false)}
+        walletAddress={walletAddress}
+        onSuccess={handleRegistrationSuccess}
+      />
     </>
   );
 }
