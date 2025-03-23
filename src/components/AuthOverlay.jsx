@@ -13,7 +13,7 @@ const AuthOverlay = ({ isOpen, onClose, walletAddress, onSuccess }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      setLoading(true);a
+      setLoading(true);
       setError('');
       
       await axios.post('http://localhost:5000/api/users', {
