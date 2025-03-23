@@ -33,6 +33,9 @@ Our vision is to democratize education by:
 ![img5](https://github.com/user-attachments/assets/fb1b4077-7a17-4fd1-b985-6a1b52c65c94)
 ![img6](https://github.com/user-attachments/assets/a9e039f3-90d2-4d0a-ba36-d6ab22e4ee96)
 
+Smart Contract Details:
+0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512
+
 🚀 Tech Stack
 Frontend: ReactJS
 
